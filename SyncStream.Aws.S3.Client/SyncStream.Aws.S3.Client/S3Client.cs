@@ -296,6 +296,109 @@ public class S3Client
     }
 
     /// <summary>
+    /// This method asynchronously lists the objects matching <paramref name="objectPrefix" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix pattern to query S3 with</param>
+    /// <param name="configuration">Optional configuration override instance</param>
+    /// <returns>An awaitable task containing a list of objects</returns>
+    public static async Task<List<S3Object>> ListObjectsAsync(string objectPrefix, IS3ClientConfig configuration = null)
+    {
+
+        // Localize our client into a disposable context
+        using AmazonS3Client client = GetClient(configuration);
+
+        // Grab the bucket and object prefix
+        Tuple<string, string> bucketAndObjectPrefix = BucketAndObjectName(objectPrefix);
+
+        // Define our objects container
+        List<S3Object> objects = new();
+
+        // Define our next-token container
+        string nextToken;
+
+        // Iterate over the objects
+        do
+        {
+            // Define our request
+            ListObjectsRequest request = new ListObjectsRequest()
+            {
+                // Set the bucket name into the request
+                BucketName = bucketAndObjectPrefix.Item1,
+                // Set the object prefix into the request
+                Prefix = bucketAndObjectPrefix.Item2
+            };
+
+            // List the objects from S3
+            ListObjectsResponse objectsResponse = await client.ListObjectsAsync(request);
+
+            // Add the objects to the list
+            objects.AddRange(objectsResponse.S3Objects);
+
+            // Reset the token
+            nextToken = objectsResponse.NextMarker;
+
+        } while (nextToken is not null);
+
+
+        // We're done, send the response
+        return objects;
+    }
+
+    /// <summary>
+    /// This method asynchronously lists the objects matching <paramref name="objectPrefix" /> and maps them to documents <typeparamref name="TOutput" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix pattern to query S3 with</param>
+    /// <param name="format">The serialization format of the document in S3</param>
+    /// <param name="configuration">Optional configuration override instance</param>
+    /// <typeparam name="TOutput">The output document type</typeparam>
+    /// <returns></returns>
+    public static async Task<List<TOutput>> ListObjectsAsync<TOutput>(string objectPrefix,
+        SerializerFormat format = SerializerFormat.Json, IS3ClientConfig configuration = null)
+        where TOutput : class, new()
+    {
+        // List the objects from S3
+        List<S3Object> objects = await ListObjectsAsync(objectPrefix, configuration);
+        // Define our list of awaitables
+        List<Task> tasks = new();
+        // Define our response
+        List<TOutput> response = new();
+
+        // Iterate over the objects
+        objects.ForEach(o => tasks.Add(Task.Run(async () =>
+        {
+            // Try to download the object from S3
+            try
+            {
+
+                // Download the object document from S3 and add it to the response
+                response.Add(await DownloadObjectAsync<TOutput>(o.Key, format, configuration));
+            }
+            catch (System.Exception)
+            {
+
+                // Assume the object key is a directory and try to process it
+                try
+                {
+
+                    // List the objects in the directory and add them to the response
+                    response.AddRange(await ListObjectsAsync<TOutput>(o.Key, format, configuration));
+                }
+                catch (System.Exception)
+                {
+
+                    // Ignored
+                }
+            }
+        })));
+
+        // Await all of our tasks
+        await Task.WhenAll(tasks);
+
+        // We're done, send the response
+        return response;
+    }
+
+    /// <summary>
     /// This method asynchronously determines whether object <paramref name="objectName" /> exists or not
     /// </summary>
     /// <param name="objectName">The object to query</param>

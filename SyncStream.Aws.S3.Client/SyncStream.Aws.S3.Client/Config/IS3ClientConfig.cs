@@ -10,17 +10,17 @@ public interface IS3ClientConfig
     /// This property contains the AWS access key
     /// </summary>
     public string AccessKeyId { get; set; }
-    
+
     /// <summary>
     /// This property contains the AWS KMS Key ID for encrypting and decrypting objects
     /// </summary>
     public string KeyManagementServiceKeyId { get; set; }
-    
+
     /// <summary>
     /// This property contains the AWS secret access key
     /// </summary>
     public string SecretAccessKey { get; set; }
-    
+
     /// <summary>
     /// This property contains the AWS region
     /// </summary>

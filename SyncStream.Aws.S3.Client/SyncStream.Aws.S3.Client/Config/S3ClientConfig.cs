@@ -16,21 +16,21 @@ public class S3ClientConfig : IS3ClientConfig
     [JsonPropertyName("accessKeyId")]
     [XmlAttribute("accessKeyId")]
     public string AccessKeyId { get; set; }
-    
+
     /// <summary>
     /// This property contains the AWS KMS Key ID for encrypting and decrypting objects
     /// </summary>
     [JsonPropertyName("keyManagementServiceKeyId")]
     [XmlAttribute("keyManagementServiceKeyId")]
     public string KeyManagementServiceKeyId { get; set; }
-    
+
     /// <summary>
     /// This property contains the AWS secret access key
     /// </summary>
     [JsonPropertyName("secretAccessKey")]
     [XmlAttribute("secretAccessKey")]
     public string SecretAccessKey { get; set; }
-    
+
     /// <summary>
     /// This property contains the AWS region
     /// </summary>
