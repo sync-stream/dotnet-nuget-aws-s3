@@ -93,10 +93,13 @@ public class S3Client
         if (objectName.EndsWith("/")) objectName = objectName.TrimEnd('/');
 
         // Check for a directory separator
-        if (!objectName.Contains('/')) return new(string.Empty, string.Empty);
+        if (!objectName.Contains('/')) return new(objectName, string.Empty);
 
         // Split the parts
         List<string> parts = objectName.Split('/', 2, StringSplitOptions.TrimEntries).ToList();
+        
+        // Check for parts
+        if (!parts.Any()) return new(objectName, string.Empty);
 
         // We're done, return the bucket and objet name
         return new(parts.FirstOrDefault(), parts.LastOrDefault());
