@@ -299,7 +299,21 @@ public class S3Client
     }
 
     /// <summary>
-    /// This method asynchronously lists the objects matching <paramref name="objectPrefix" />
+    /// This method determines whether or not <paramref name="objectName" /> is a directory or not
+    /// </summary>
+    /// <param name="objectName">The object name or path to query</param>
+    /// <returns>A boolean denoting whether <paramref name="objectName" /> is a directory or not</returns>
+    public static bool IsDirectory(string objectName) => objectName.Trim().EndsWith("/");
+
+    /// <summary>
+    /// This method determines whether or not <paramref name="objectName" /> is a file or not
+    /// </summary>
+    /// <param name="objectName">The object name or path to query</param>
+    /// <returns>A boolean denoting whether <paramref name="objectName" /> is a file or not</returns>
+    public static bool IsFile(string objectName) => !IsDirectory(objectName);
+
+    /// <summary>
+    /// This method asynchronously and recursively lists the objects matching <paramref name="objectPrefix" />
     /// </summary>
     /// <param name="objectPrefix">The prefix pattern to query S3 with</param>
     /// <param name="configuration">Optional configuration override instance</param>
@@ -335,7 +349,7 @@ public class S3Client
             ListObjectsResponse objectsResponse = await client.ListObjectsAsync(request);
 
             // Add the objects to the list
-            objects.AddRange(objectsResponse.S3Objects);
+            objects.AddRange(objectsResponse.S3Objects.Where(o => IsFile(o.Key)));
 
             // Reset the token
             nextToken = objectsResponse.NextMarker;
@@ -348,7 +362,7 @@ public class S3Client
     }
 
     /// <summary>
-    /// This method asynchronously lists the objects matching <paramref name="objectPrefix" /> and maps them to documents <typeparamref name="TOutput" />
+    /// This method asynchronously and recursively lists the objects matching <paramref name="objectPrefix" /> and maps them to documents <typeparamref name="TOutput" />
     /// </summary>
     /// <param name="objectPrefix">The prefix pattern to query S3 with</param>
     /// <param name="format">The serialization format of the document in S3</param>
@@ -369,29 +383,13 @@ public class S3Client
         // Iterate over the objects
         objects.ForEach(o => tasks.Add(Task.Run(async () =>
         {
-            // Try to download the object from S3
-            try
-            {
-
-                // Download the object document from S3 and add it to the response
+            // Check for a file object and download the document from S3 and add it to the response
+            if (IsFile(o.Key))
                 response.Add(await DownloadObjectAsync<TOutput>(o.Key, format, configuration));
-            }
-            catch (System.Exception)
-            {
-
-                // Assume the object key is a directory and try to process it
-                try
-                {
-
-                    // List the objects in the directory and add them to the response
-                    response.AddRange(await ListObjectsAsync<TOutput>(o.Key, format, configuration));
-                }
-                catch (System.Exception)
-                {
-
-                    // Ignored
-                }
-            }
+            
+            // Otherwise, list the objects in the directory and add them to the response
+            else
+                response.AddRange(await ListObjectsAsync<TOutput>(o.Key, format, configuration));
         })));
 
         // Await all of our tasks
