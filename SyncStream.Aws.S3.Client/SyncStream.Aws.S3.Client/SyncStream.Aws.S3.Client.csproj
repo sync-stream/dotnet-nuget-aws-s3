@@ -20,7 +20,7 @@
 
     <ItemGroup>
         <PackageReference Include="AWSSDK.S3" Version="3.7.9.15" />
-        <PackageReference Include="SyncStream.Serializer" Version="1.0.1" />
+        <PackageReference Include="SyncStream.Serializer" Version="1.0.3" />
     </ItemGroup>
 
 </Project>
