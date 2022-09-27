@@ -25,5 +25,5 @@ jobs:
           INCLUDE_SYMBOLS: false
           NUGET_KEY: ${{ secrets.SS_NUGET_API_KEY }}
           PACKAGE_NAME: 'SyncStream.Aws.S3.Client'
-          PROJECT_FILE_PATH: 'SyncStream.Aws.S3.Client/SyncStream.Aws.S3.Client/SyncStream.Aws.S3.Client.csproj'
+          PROJECT_FILE_PATH: 'SyncStream.Aws.S3.Client.csproj'
           TAG_COMMIT: false
