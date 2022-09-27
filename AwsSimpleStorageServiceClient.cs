@@ -4,7 +4,7 @@ using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.S3.Transfer;
-using SyncStream.Aws.S3.Client.Config;
+using SyncStream.Aws.S3.Client.Configuration;
 using SyncStream.Aws.S3.Client.Exception;
 using SyncStream.Serializer;
 
@@ -14,19 +14,19 @@ namespace SyncStream.Aws.S3.Client;
 /// <summary>
 /// This class maintains the structure of our S3 client
 /// </summary>
-public class S3Client
+public class AwsSimpleStorageServiceClient
 {
     /// <summary>
     /// This property contains the instance of our configuration
     /// </summary>
-    public static IS3ClientConfig Configuration { get; private set; }
+    public static IAwsSimpleStorageServiceClientConfiguration Configuration { get; private set; }
 
     /// <summary>
     /// This method generates an authenticated AWS client
     /// </summary>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An authenticated AWS S3 Client</returns>
-    public static AmazonS3Client GetClient(IS3ClientConfig configuration = null) => new(
+    public static AmazonS3Client GetClient(IAwsSimpleStorageServiceClientConfiguration configuration = null) => new(
         new BasicAWSCredentials((configuration ?? Configuration)?.AccessKeyId,
             (configuration ?? Configuration)?.SecretAccessKey),
         RegionEndpoint.GetBySystemName((configuration ?? Configuration)?.Region));
@@ -36,20 +36,20 @@ public class S3Client
     /// </summary>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An authenticated AWS S3 Transfer Utility</returns>
-    public static TransferUtility GetTransferUtility(IS3ClientConfig configuration = null) =>
+    public static TransferUtility GetTransferUtility(IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
         new(GetClient(configuration));
 
     /// <summary>
     /// This method resets the configuration for the client
     /// </summary>
     /// <param name="configuration">The global configuration override instance</param>
-    public static void WithConfiguration(IS3ClientConfig configuration) =>
+    public static void WithConfiguration(IAwsSimpleStorageServiceClientConfiguration configuration) =>
         Configuration = configuration;
 
     /// <summary>
     /// This method instantiates our client
     /// </summary>
-    public S3Client()
+    public AwsSimpleStorageServiceClient()
     {
     }
 
@@ -57,7 +57,7 @@ public class S3Client
     /// This method instantiates our client with a configuration object
     /// </summary>
     /// <param name="configuration">The configuration object with AWS credentials and region</param>
-    public S3Client(IS3ClientConfig configuration) =>
+    public AwsSimpleStorageServiceClient(IAwsSimpleStorageServiceClientConfiguration configuration) =>
         WithConfiguration(configuration);
 
     /// <summary>
@@ -66,7 +66,7 @@ public class S3Client
     /// <param name="request">The upload request being sent to S3</param>
     /// <param name="configuration">Optional override configuration instance</param>
     protected static void ConfigureEncryption(ref TransferUtilityUploadRequest request,
-        IS3ClientConfig configuration = null)
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Localize the KMS key ID from the configuration
         string keyManagementServiceKeyId = (configuration ?? Configuration)?.KeyManagementServiceKeyId;
@@ -97,7 +97,7 @@ public class S3Client
 
         // Split the parts
         List<string> parts = objectName.Split('/', 2, StringSplitOptions.TrimEntries).ToList();
-        
+
         // Check for parts
         if (!parts.Any()) return new(objectName, string.Empty);
 
@@ -111,7 +111,7 @@ public class S3Client
     /// <param name="objectName">The object to query</param>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task containing a boolean denoting the existence of the bucket</returns>
-    public static async Task<bool> BucketExistsAsync(string objectName, IS3ClientConfig configuration = null)
+    public static async Task<bool> BucketExistsAsync(string objectName, IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Grab the bucket file name
         Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectName);
@@ -152,7 +152,7 @@ public class S3Client
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task containing the AWS response from the copy</returns>
     public static async Task<CopyObjectResponse> CopyFileAsync(string sourceObjectName, string targetObjectName,
-        IS3ClientConfig configuration = null)
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Localize the source bucket and object name
         Tuple<string, string> sourceBucketAndObjectName = BucketAndObjectName(sourceObjectName);
@@ -201,7 +201,7 @@ public class S3Client
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task containing the AWS SDK object-delete response</returns>
     public static async Task<DeleteObjectResponse> DeleteFileIfExistsAsync(string objectName,
-        IS3ClientConfig configuration = null)
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Make sure the file exists and return
         if (!await ObjectExistsAsync(objectName)) return null;
@@ -242,11 +242,11 @@ public class S3Client
     /// <param name="objectName">The object to download</param>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task containing a stream of the object's contents</returns>
-    /// <exception cref="S3ObjectNotFoundException">Thrown when the object doesn't exist</exception>
-    public static async Task<Stream> DownloadObjectAsync(string objectName, IS3ClientConfig configuration = null)
+    /// <exception cref="AwsSimpleStorageServiceObjectNotFoundException">Thrown when the object doesn't exist</exception>
+    public static async Task<Stream> DownloadObjectAsync(string objectName, IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Make sure the file exists and return
-        if (!await ObjectExistsAsync(objectName)) throw new S3ObjectNotFoundException("S3 Object Not Found");
+        if (!await ObjectExistsAsync(objectName)) throw new AwsSimpleStorageServiceObjectNotFoundException("S3 Object Not Found");
 
         // Localize the bucket and object name
         Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectName);
@@ -279,8 +279,7 @@ public class S3Client
     /// <typeparam name="TTarget">The target deserialization type</typeparam>
     /// <returns>An awaitable task contain the deserialized object</returns>
     public static async Task<TTarget> DownloadObjectAsync<TTarget>(string objectName,
-        SerializerFormat format = SerializerFormat.Json, IS3ClientConfig configuration = null)
-        where TTarget : class, new()
+        SerializerFormat format = SerializerFormat.Json, IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
 
         // Download the object stream into a disposable context
@@ -318,7 +317,7 @@ public class S3Client
     /// <param name="objectPrefix">The prefix pattern to query S3 with</param>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task containing a list of objects</returns>
-    public static async Task<List<S3Object>> ListObjectsAsync(string objectPrefix, IS3ClientConfig configuration = null)
+    public static async Task<List<S3Object>> ListObjectsAsync(string objectPrefix, IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
 
         // Localize our client into a disposable context
@@ -370,8 +369,7 @@ public class S3Client
     /// <typeparam name="TOutput">The output document type</typeparam>
     /// <returns></returns>
     public static async Task<List<TOutput>> ListObjectsAsync<TOutput>(string objectPrefix,
-        SerializerFormat format = SerializerFormat.Json, IS3ClientConfig configuration = null)
-        where TOutput : class, new()
+        SerializerFormat format = SerializerFormat.Json, IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // List the objects from S3
         List<S3Object> objects = await ListObjectsAsync(objectPrefix, configuration);
@@ -386,7 +384,7 @@ public class S3Client
             // Check for a file object and download the document from S3 and add it to the response
             if (IsFile(o.Key))
                 response.Add(await DownloadObjectAsync<TOutput>(o.Key, format, configuration));
-            
+
             // Otherwise, list the objects in the directory and add them to the response
             else
                 response.AddRange(await ListObjectsAsync<TOutput>(o.Key, format, configuration));
@@ -405,7 +403,7 @@ public class S3Client
     /// <param name="objectName">The object to query</param>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task containing a boolean denoting whether the object exists or not</returns>
-    public static async Task<bool> ObjectExistsAsync(string objectName, IS3ClientConfig configuration = null)
+    public static async Task<bool> ObjectExistsAsync(string objectName, IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Grab the bucket and object name
         Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectName);
@@ -452,7 +450,7 @@ public class S3Client
     /// <param name="objectName">The object to get a pre-signed URL for</param>
     /// <param name="configuration">Option configuration override instance</param>
     /// <returns>The pre-signed URL to <paramref name="objectName" /> on Amazon S3</returns>
-    public static string ObjectUrl(string objectName, IS3ClientConfig configuration = null)
+    public static string ObjectUrl(string objectName, IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Grab the bucket and object name
         Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectName);
@@ -495,7 +493,7 @@ public class S3Client
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task with no result</returns>
     public static Task UploadAsync(string objectName, Stream data, MetadataCollection metadata = null,
-        S3CannedACL acl = null, IS3ClientConfig configuration = null)
+        S3CannedACL acl = null, IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Default our ACL
         acl ??= S3CannedACL.Private;
@@ -549,7 +547,7 @@ public class S3Client
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task with no result</returns>
     public static Task UploadAsync(string objectName, byte[] binary, MetadataCollection metadata = null,
-        S3CannedACL acl = null, IS3ClientConfig configuration = null) =>
+        S3CannedACL acl = null, IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
         UploadAsync(objectName, new MemoryStream(binary), metadata, acl, configuration);
 
     /// <summary>
@@ -562,7 +560,7 @@ public class S3Client
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task with no result</returns>
     public static async Task UploadAsync(string objectName, string localPathOrContent,
-        MetadataCollection metadata = null, S3CannedACL acl = null, IS3ClientConfig configuration = null)
+        MetadataCollection metadata = null, S3CannedACL acl = null, IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Check for a directory
         if (Directory.Exists(localPathOrContent))
@@ -611,8 +609,8 @@ public class S3Client
     /// <typeparam name="TSource"></typeparam>
     /// <returns></returns>
     public static Task UploadAsync<TSource>(string objectName, TSource content, MetadataCollection metadata = null,
-        S3CannedACL acl = null, SerializerFormat format = SerializerFormat.Json, IS3ClientConfig configuration = null)
-        where TSource : class, new() => UploadAsync(objectName,
+        S3CannedACL acl = null, SerializerFormat format = SerializerFormat.Json,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null) => UploadAsync(objectName,
         format is SerializerFormat.Xml
             ? XmlSerializer.SerializePretty(content)
             : JsonSerializer.SerializePretty(content), metadata, acl, configuration);
@@ -629,7 +627,7 @@ public class S3Client
     /// <typeparam name="TSource"></typeparam>
     public static async Task UploadAsync<TSource>(string objectName, string localDirectoryFileOrContent,
         MetadataCollection metadata = null, S3CannedACL acl = null, SerializerFormat format = SerializerFormat.Json,
-        IS3ClientConfig configuration = null) where TSource : class, new()
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Check for a directory
         if (Directory.Exists(localDirectoryFileOrContent))

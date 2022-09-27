@@ -1,10 +1,10 @@
 // Define our namespace
-namespace SyncStream.Aws.S3.Client.Config;
+namespace SyncStream.Aws.S3.Client.Configuration;
 
 /// <summary>
 /// This interface maintains the structure of our AWS configuration
 /// </summary>
-public interface IS3ClientConfig
+public interface IAwsSimpleStorageServiceClientConfiguration
 {
     /// <summary>
     /// This property contains the AWS access key

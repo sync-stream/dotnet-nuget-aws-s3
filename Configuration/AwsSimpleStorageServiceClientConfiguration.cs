@@ -2,13 +2,13 @@ using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 
 // Define the namespace
-namespace SyncStream.Aws.S3.Client.Config;
+namespace SyncStream.Aws.S3.Client.Configuration;
 
 /// <summary>
 /// This class maintains the structure of our AWS S3 configuration
 /// </summary>
 [XmlRoot("simpleStorageServiceClientConfiguration")]
-public class S3ClientConfig : IS3ClientConfig
+public class AwsSimpleStorageServiceClientConfiguration : IAwsSimpleStorageServiceClientConfiguration
 {
     /// <summary>
     /// This property contains the AWS access key
