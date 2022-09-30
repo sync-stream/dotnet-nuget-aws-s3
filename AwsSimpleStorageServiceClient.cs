@@ -12,17 +12,17 @@ using SyncStream.Serializer;
 namespace SyncStream.Aws.S3.Client;
 
 /// <summary>
-/// This class maintains the structure of our S3 client
+///     This class maintains the structure of our S3 client
 /// </summary>
 public class AwsSimpleStorageServiceClient
 {
     /// <summary>
-    /// This property contains the instance of our configuration
+    ///     This property contains the instance of our configuration
     /// </summary>
     public static IAwsSimpleStorageServiceClientConfiguration Configuration { get; private set; }
 
     /// <summary>
-    /// This method generates an authenticated AWS client
+    ///     This method generates an authenticated AWS client
     /// </summary>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An authenticated AWS S3 Client</returns>
@@ -32,36 +32,37 @@ public class AwsSimpleStorageServiceClient
         RegionEndpoint.GetBySystemName((configuration ?? Configuration)?.Region));
 
     /// <summary>
-    /// This property contains the instance of our transfer utility
+    ///     This property contains the instance of our transfer utility
     /// </summary>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An authenticated AWS S3 Transfer Utility</returns>
-    public static TransferUtility GetTransferUtility(IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
+    public static TransferUtility
+        GetTransferUtility(IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
         new(GetClient(configuration));
 
     /// <summary>
-    /// This method resets the configuration for the client
+    ///     This method resets the configuration for the client
     /// </summary>
     /// <param name="configuration">The global configuration override instance</param>
     public static void WithConfiguration(IAwsSimpleStorageServiceClientConfiguration configuration) =>
         Configuration = configuration;
 
     /// <summary>
-    /// This method instantiates our client
+    ///     This method instantiates our client
     /// </summary>
     public AwsSimpleStorageServiceClient()
     {
     }
 
     /// <summary>
-    /// This method instantiates our client with a configuration object
+    ///     This method instantiates our client with a configuration object
     /// </summary>
     /// <param name="configuration">The configuration object with AWS credentials and region</param>
     public AwsSimpleStorageServiceClient(IAwsSimpleStorageServiceClientConfiguration configuration) =>
         WithConfiguration(configuration);
 
     /// <summary>
-    /// This method configures the encryption for an upload
+    ///     This method configures the encryption for an upload
     /// </summary>
     /// <param name="request">The upload request being sent to S3</param>
     /// <param name="configuration">Optional override configuration instance</param>
@@ -77,13 +78,14 @@ public class AwsSimpleStorageServiceClient
 
             // Set the KMS key ID into the request
             request.ServerSideEncryptionKeyManagementServiceKeyId = keyManagementServiceKeyId;
+
             // Set the server-side encryption method into the request
             request.ServerSideEncryptionMethod = ServerSideEncryptionMethod.AWSKMS;
         }
     }
 
     /// <summary>
-    /// This method determines the bucket and name of an object
+    ///     This method determines the bucket and name of an object
     /// </summary>
     /// <param name="objectName">The object name to parse</param>
     /// <returns>A tuple containing the bucket name and the object name</returns>
@@ -109,12 +111,13 @@ public class AwsSimpleStorageServiceClient
     }
 
     /// <summary>
-    /// This method asynchronously determines whether or not a bucket <paramref name="objectName" /> exists
+    ///     This method asynchronously determines whether or not a bucket <paramref name="objectName" /> exists
     /// </summary>
     /// <param name="objectName">The object to query</param>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task containing a boolean denoting the existence of the bucket</returns>
-    public static async Task<bool> BucketExistsAsync(string objectName, IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    public static async Task<bool> BucketExistsAsync(string objectName,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Grab the bucket file name
         Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectName);
@@ -148,7 +151,7 @@ public class AwsSimpleStorageServiceClient
     }
 
     /// <summary>
-    /// This method asynchronously copies <paramref name="sourceObjectName" /> to <paramref name="targetObjectName" /> in Amazon S3
+    ///     This method asynchronously copies <paramref name="sourceObjectName" /> to <paramref name="targetObjectName" /> in Amazon S3
     /// </summary>
     /// <param name="sourceObjectName">The source object to copy data from</param>
     /// <param name="targetObjectName">The target object to copy data to</param>
@@ -179,10 +182,13 @@ public class AwsSimpleStorageServiceClient
         {
             // Set the target bucket into the request
             DestinationBucket = targetBucketAndObjectName.Item1,
+
             // Set the target object name into the request
             DestinationKey = targetBucketAndObjectName.Item2,
+
             // Set the source bucket into the request
             SourceBucket = sourceBucketAndObjectName.Item1,
+
             // Set the source object name into the request
             SourceKey = sourceBucketAndObjectName.Item2
         };
@@ -198,7 +204,7 @@ public class AwsSimpleStorageServiceClient
     }
 
     /// <summary>
-    /// This method asynchronously deletes <paramref name="objectName" /> from S3 if it exists
+    ///     This method asynchronously deletes <paramref name="objectName" /> from S3 if it exists
     /// </summary>
     /// <param name="objectName">The object to delete if it exists</param>
     /// <param name="configuration">Optional configuration override instance</param>
@@ -225,6 +231,7 @@ public class AwsSimpleStorageServiceClient
         {
             // Set the bucket into the request
             BucketName = bucketAndObjectName.Item1,
+
             // Set the object name into the request
             Key = bucketAndObjectName.Item2
         };
@@ -240,16 +247,18 @@ public class AwsSimpleStorageServiceClient
     }
 
     /// <summary>
-    /// This method asynchronously downloads object <paramref name="objectName" /> from S3
+    ///     This method asynchronously downloads object <paramref name="objectName" /> from S3
     /// </summary>
     /// <param name="objectName">The object to download</param>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task containing a stream of the object's contents</returns>
     /// <exception cref="AwsSimpleStorageServiceObjectNotFoundException">Thrown when the object doesn't exist</exception>
-    public static async Task<Stream> DownloadObjectAsync(string objectName, IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    public static async Task<Stream> DownloadObjectAsync(string objectName,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Make sure the file exists and return
-        if (!await ObjectExistsAsync(objectName)) throw new AwsSimpleStorageServiceObjectNotFoundException("S3 Object Not Found");
+        if (!await ObjectExistsAsync(objectName))
+            throw new AwsSimpleStorageServiceObjectNotFoundException("S3 Object Not Found");
 
         // Localize the bucket and object name
         Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectName);
@@ -259,6 +268,7 @@ public class AwsSimpleStorageServiceClient
         {
             // Set the bucket into the request
             BucketName = bucketAndObjectName.Item1,
+
             // Set the object name into the request
             Key = bucketAndObjectName.Item2
         };
@@ -274,7 +284,7 @@ public class AwsSimpleStorageServiceClient
     }
 
     /// <summary>
-    /// This method asynchronously downloads object <paramref name="objectName" /> and deserializes it from <paramref name="format" /> into <typeparamref name="TTarget" />
+    ///     This method asynchronously downloads object <paramref name="objectName" /> and deserializes it from <paramref name="format" /> into <typeparamref name="TTarget" />
     /// </summary>
     /// <param name="objectName">The object to download</param>
     /// <param name="format">The serialization format of the object</param>
@@ -282,7 +292,8 @@ public class AwsSimpleStorageServiceClient
     /// <typeparam name="TTarget">The target deserialization type</typeparam>
     /// <returns>An awaitable task contain the deserialized object</returns>
     public static async Task<TTarget> DownloadObjectAsync<TTarget>(string objectName,
-        SerializerFormat format = SerializerFormat.Json, IAwsSimpleStorageServiceClientConfiguration configuration = null)
+        SerializerFormat format = SerializerFormat.Json,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
 
         // Download the object stream into a disposable context
@@ -295,9 +306,7 @@ public class AwsSimpleStorageServiceClient
         string objectContents = await objectStreamReader.ReadToEndAsync();
 
         // We're done, check the format and deserialize the object's content
-        return format is SerializerFormat.Xml
-            ? XmlSerializer.Deserialize<TTarget>(objectContents)
-            : JsonSerializer.Deserialize<TTarget>(objectContents);
+        return SerializerService.Deserialize<TTarget>(objectContents, format);
     }
 
     /// <summary>
@@ -320,7 +329,8 @@ public class AwsSimpleStorageServiceClient
     /// <param name="objectPrefix">The prefix pattern to query S3 with</param>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task containing a list of objects</returns>
-    public static async Task<List<S3Object>> ListObjectsAsync(string objectPrefix, IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    public static async Task<List<S3Object>> ListObjectsAsync(string objectPrefix,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
 
         // Localize our client into a disposable context
@@ -343,6 +353,7 @@ public class AwsSimpleStorageServiceClient
             {
                 // Set the bucket name into the request
                 BucketName = bucketAndObjectPrefix.Item1,
+
                 // Set the object prefix into the request
                 Prefix = bucketAndObjectPrefix.Item2
             };
@@ -358,26 +369,28 @@ public class AwsSimpleStorageServiceClient
 
         } while (nextToken is not null);
 
-
         // We're done, send the response
         return objects;
     }
 
     /// <summary>
-    /// This method asynchronously and recursively lists the objects matching <paramref name="objectPrefix" /> and maps them to documents <typeparamref name="TOutput" />
+    ///     This method asynchronously and recursively lists the objects matching <paramref name="objectPrefix" /> and maps them to documents <typeparamref name="TOutput" />
     /// </summary>
     /// <param name="objectPrefix">The prefix pattern to query S3 with</param>
     /// <param name="format">The serialization format of the document in S3</param>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <typeparam name="TOutput">The output document type</typeparam>
-    /// <returns></returns>
+    /// <returns>An awaitable task containing a list of <typeparamref name="TOutput" /> objects</returns>
     public static async Task<List<TOutput>> ListObjectsAsync<TOutput>(string objectPrefix,
-        SerializerFormat format = SerializerFormat.Json, IAwsSimpleStorageServiceClientConfiguration configuration = null)
+        SerializerFormat format = SerializerFormat.Json,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // List the objects from S3
         List<S3Object> objects = await ListObjectsAsync(objectPrefix, configuration);
-        // Define our list of awaitables
+
+        // Define our list of awaitable tasks
         List<Task> tasks = new();
+
         // Define our response
         List<TOutput> response = new();
 
@@ -385,12 +398,11 @@ public class AwsSimpleStorageServiceClient
         objects.ForEach(o => tasks.Add(Task.Run(async () =>
         {
             // Check for a file object and download the document from S3 and add it to the response
-            if (IsFile(o.Key))
-                response.Add(await DownloadObjectAsync<TOutput>(o.Key, format, configuration));
+            if (IsFile(o.Key)) response.Add(await DownloadObjectAsync<TOutput>(o.Key, format, configuration));
+
 
             // Otherwise, list the objects in the directory and add them to the response
-            else
-                response.AddRange(await ListObjectsAsync<TOutput>(o.Key, format, configuration));
+            else response.AddRange(await ListObjectsAsync<TOutput>(o.Key, format, configuration));
         })));
 
         // Await all of our tasks
@@ -401,12 +413,13 @@ public class AwsSimpleStorageServiceClient
     }
 
     /// <summary>
-    /// This method asynchronously determines whether object <paramref name="objectName" /> exists or not
+    ///     This method asynchronously determines whether object <paramref name="objectName" /> exists or not
     /// </summary>
     /// <param name="objectName">The object to query</param>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task containing a boolean denoting whether the object exists or not</returns>
-    public static async Task<bool> ObjectExistsAsync(string objectName, IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    public static async Task<bool> ObjectExistsAsync(string objectName,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Grab the bucket and object name
         Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectName);
@@ -424,6 +437,7 @@ public class AwsSimpleStorageServiceClient
         {
             // Set the bucket name into the request
             BucketName = bucketAndObjectName.Item1,
+
             // Set the object name into the request
             Key = bucketAndObjectName.Item2
         };
@@ -448,7 +462,7 @@ public class AwsSimpleStorageServiceClient
     }
 
     /// <summary>
-    /// This method returns a pre-signed URL to <paramref name="objectName" /> object
+    ///     This method returns a pre-signed URL to <paramref name="objectName" /> object
     /// </summary>
     /// <param name="objectName">The object to get a pre-signed URL for</param>
     /// <param name="configuration">Option configuration override instance</param>
@@ -474,10 +488,13 @@ public class AwsSimpleStorageServiceClient
         {
             // Set the bucket name into the request
             BucketName = bucketAndObjectName.Item1,
+
             // Set the object name into the request
             Key = bucketAndObjectName.Item2,
+
             // Set the protocol into the request
             Protocol = Protocol.HTTPS,
+
             // Set the verb into the request
             Verb = HttpVerb.GET
         };
@@ -487,16 +504,17 @@ public class AwsSimpleStorageServiceClient
     }
 
     /// <summary>
-    /// This method asynchronously uploads <paramref name="data" /> to <paramref name="objectName" />
+    ///     This method asynchronously uploads <paramref name="data" /> to <paramref name="objectName" />
     /// </summary>
     /// <param name="objectName">The target object to save <paramref name="data" /> to</param>
     /// <param name="data">The content of the object</param>
+    /// <param name="configuration">Optional configuration override instance</param>
     /// <param name="metadata">Optional metadata for the object</param>
     /// <param name="acl">Optional access control for the object</param>
-    /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task with no result</returns>
-    public static Task UploadAsync(string objectName, Stream data, MetadataCollection metadata = null,
-        S3CannedACL acl = null, IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    public static Task UploadAsync(string objectName, Stream data,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, MetadataCollection metadata = null,
+        S3CannedACL acl = null)
     {
         // Default our ACL
         acl ??= S3CannedACL.Private;
@@ -517,10 +535,13 @@ public class AwsSimpleStorageServiceClient
         {
             // Set the bucket into the request
             BucketName = bucketAndObjectName.Item1,
+
             // Set the ACL into the request
             CannedACL = acl,
+
             // Set our content into the request
             InputStream = data,
+
             // Set the object name into the request
             Key = bucketAndObjectName.Item2
         };
@@ -541,29 +562,30 @@ public class AwsSimpleStorageServiceClient
     }
 
     /// <summary>
-    /// This method asynchronously uploads <paramref name="binary" /> to <paramref name="objectName" />
+    ///     This method asynchronously uploads <paramref name="binary" /> to <paramref name="objectName" />
     /// </summary>
     /// <param name="objectName">The target object to save <paramref name="binary" /> to</param>
     /// <param name="binary">The binary content of the object</param>
+    /// <param name="configuration">Optional configuration override instance</param>
     /// <param name="metadata">Optional metadata for the object</param>
     /// <param name="acl">Optional access control for the object</param>
-    /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task with no result</returns>
-    public static Task UploadAsync(string objectName, byte[] binary, MetadataCollection metadata = null,
-        S3CannedACL acl = null, IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
-        UploadAsync(objectName, new MemoryStream(binary), metadata, acl, configuration);
+    public static Task UploadAsync(string objectName, byte[] binary,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, MetadataCollection metadata = null,
+        S3CannedACL acl = null) => UploadAsync(objectName, new MemoryStream(binary), configuration, metadata, acl);
 
     /// <summary>
-    /// This method asynchronously uploads <paramref name="localPathOrContent" /> to <paramref name="objectName" />
+    ///     This method asynchronously uploads <paramref name="localPathOrContent" /> to <paramref name="objectName" />
     /// </summary>
     /// <param name="objectName">The target object to save <paramref name="localPathOrContent" /> to</param>
     /// <param name="localPathOrContent">The local path to the file, directory or the content to be uploaded</param>
+    /// <param name="configuration">Optional configuration override instance</param>
     /// <param name="metadata">Optional metadata for the object</param>
     /// <param name="acl">Optional access control for the object</param>
-    /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An awaitable task with no result</returns>
     public static async Task UploadAsync(string objectName, string localPathOrContent,
-        MetadataCollection metadata = null, S3CannedACL acl = null, IAwsSimpleStorageServiceClientConfiguration configuration = null)
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, MetadataCollection metadata = null,
+        S3CannedACL acl = null)
     {
         // Check for a directory
         if (Directory.Exists(localPathOrContent))
@@ -573,12 +595,12 @@ public class AwsSimpleStorageServiceClient
 
             // Iterate over the sub-directories and upload them
             foreach (DirectoryInfo subDirectory in directory.EnumerateDirectories())
-                await UploadAsync($"{objectName}/{subDirectory.Name}", subDirectory.FullName, metadata, acl,
-                    configuration);
+                await UploadAsync($"{objectName}/{subDirectory.Name}", subDirectory.FullName, configuration, metadata,
+                    acl);
 
             // Iterate over the files and upload them
             foreach (FileInfo file in directory.EnumerateFiles())
-                await UploadAsync($"{objectName}/{file.Name}", file.FullName, metadata, acl, configuration);
+                await UploadAsync($"{objectName}/{file.Name}", file.FullName, configuration, metadata, acl);
 
             // We're done
             return;
@@ -588,49 +610,50 @@ public class AwsSimpleStorageServiceClient
         if (File.Exists(localPathOrContent))
         {
             // Read the file from the local filesystem and upload it to S3
-            await UploadAsync(objectName, await File.ReadAllBytesAsync(localPathOrContent), metadata, acl,
-                configuration);
+            await UploadAsync(objectName, await File.ReadAllBytesAsync(localPathOrContent), configuration, metadata,
+                acl);
 
             // We're done
             return;
         }
 
         // We're done, convert the content to bytes and create the file in S3
-        await UploadAsync(objectName, Encoding.UTF8.GetBytes(localPathOrContent ?? string.Empty), metadata, acl,
-            configuration);
+        await UploadAsync(objectName, Encoding.UTF8.GetBytes(localPathOrContent ?? string.Empty), configuration,
+            metadata, acl);
     }
 
     /// <summary>
-    /// This method asynchronously serializes <paramref name="content" /> into <paramref name="format" /> then uploads it to <paramref name="objectName" /> on S3
+    ///     This method asynchronously serializes <paramref name="content" /> into <paramref name="format" /> then uploads it to <paramref name="objectName" /> on S3
     /// </summary>
-    /// /// <param name="objectName">The target object to save <paramref name="content" /> to</param>
+    /// <param name="objectName">The target object to save <paramref name="content" /> to</param>
     /// <param name="content">The object to serialize and upload</param>
-    /// <param name="metadata">Optional metadata for the object</param>
-    /// <param name="acl">Optional access control for the object</param>
     /// <param name="format">The serialization format of the object</param>
     /// <param name="configuration">Optional configuration override instance</param>
-    /// <typeparam name="TSource"></typeparam>
-    /// <returns></returns>
-    public static Task UploadAsync<TSource>(string objectName, TSource content, MetadataCollection metadata = null,
-        S3CannedACL acl = null, SerializerFormat format = SerializerFormat.Json,
-        IAwsSimpleStorageServiceClientConfiguration configuration = null) => UploadAsync(objectName,
-        format is SerializerFormat.Xml
-            ? XmlSerializer.SerializePretty(content)
-            : JsonSerializer.SerializePretty(content), metadata, acl, configuration);
+    /// <param name="metadata">Optional metadata for the object</param>
+    /// <param name="acl">Optional access control for the object</param>
+    /// <typeparam name="TSource">The expected source object type</typeparam>
+    /// <returns>An awaitable task containing a void result</returns>
+    public static Task UploadAsync<TSource>(string objectName, TSource content,
+        SerializerFormat format = SerializerFormat.None,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, MetadataCollection metadata = null,
+        S3CannedACL acl = null) => UploadAsync(objectName, SerializerService.SerializePretty(content, format),
+        configuration, metadata, acl);
 
     /// <summary>
-    /// This method asynchronously uploads a local file or directory, or a serialized string of data to S3 as <typeparamref name="TSource" />
+    ///     This method asynchronously uploads a local file or directory, or a serialized string of data to S3 as <typeparamref name="TSource" />
     /// </summary>
     /// <param name="objectName">The object path to upload <paramref name="localDirectoryFileOrContent" /> to</param>
     /// <param name="localDirectoryFileOrContent">The local file or directory path, or a serialized string</param>
-    /// <param name="metadata">Optional metadata for the object</param>
-    /// <param name="acl">Optional access control for the object</param>
     /// <param name="format">The serialization format of the object</param>
     /// <param name="configuration">Optional configuration override instance</param>
-    /// <typeparam name="TSource"></typeparam>
+    /// <param name="metadata">Optional metadata for the object</param>
+    /// <param name="acl">Optional access control for the object</param>
+    /// <typeparam name="TSource">The expected source object type</typeparam>
+    /// <returns>An awaitable task containing a void result</returns>
     public static async Task UploadAsync<TSource>(string objectName, string localDirectoryFileOrContent,
-        MetadataCollection metadata = null, S3CannedACL acl = null, SerializerFormat format = SerializerFormat.Json,
-        IAwsSimpleStorageServiceClientConfiguration configuration = null)
+        SerializerFormat format = SerializerFormat.Json,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, MetadataCollection metadata = null,
+        S3CannedACL acl = null)
     {
         // Check for a directory
         if (Directory.Exists(localDirectoryFileOrContent))
@@ -640,13 +663,13 @@ public class AwsSimpleStorageServiceClient
 
             // Iterate over the sub-directories and upload them
             foreach (DirectoryInfo subDirectory in directory.EnumerateDirectories())
-                await UploadAsync<TSource>($"{objectName}/{subDirectory.Name}", subDirectory.FullName, metadata, acl,
-                    format, configuration);
+                await UploadAsync<TSource>($"{objectName}/{subDirectory.Name}", subDirectory.FullName, format,
+                    configuration, metadata, acl);
 
             // Iterate over the files and upload them
             foreach (FileInfo file in directory.EnumerateFiles())
-                await UploadAsync($"{objectName}/{file.Name}", await File.ReadAllTextAsync(file.FullName), metadata,
-                    acl, configuration);
+                await UploadAsync($"{objectName}/{file.Name}", await File.ReadAllTextAsync(file.FullName), format,
+                    configuration, metadata, acl);
 
             // We're done
             return;
@@ -656,14 +679,14 @@ public class AwsSimpleStorageServiceClient
         if (File.Exists(localDirectoryFileOrContent))
         {
             // Read the file from the local filesystem and upload it to S3
-            await UploadAsync(objectName, await File.ReadAllTextAsync(localDirectoryFileOrContent), metadata, acl,
-                configuration);
+            await UploadAsync(objectName, await File.ReadAllTextAsync(localDirectoryFileOrContent), format,
+                configuration, metadata, acl);
 
             // We're done
             return;
         }
 
         // We're done, convert the content to bytes and create the file in S3
-        await UploadAsync(objectName, localDirectoryFileOrContent, metadata, acl, configuration);
+        await UploadAsync(objectName, localDirectoryFileOrContent, configuration, metadata, acl);
     }
 }
