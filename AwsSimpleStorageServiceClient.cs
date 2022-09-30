@@ -26,10 +26,25 @@ public class AwsSimpleStorageServiceClient
     /// </summary>
     /// <param name="configuration">Optional configuration override instance</param>
     /// <returns>An authenticated AWS S3 Client</returns>
-    public static AmazonS3Client GetClient(IAwsSimpleStorageServiceClientConfiguration configuration = null) => new(
-        new BasicAWSCredentials((configuration ?? Configuration)?.AccessKeyId,
-            (configuration ?? Configuration)?.SecretAccessKey),
-        RegionEndpoint.GetBySystemName((configuration ?? Configuration)?.Region));
+    public static AmazonS3Client GetClient(IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    {
+        // Ensure we have a configuration
+        configuration ??= Configuration;
+
+        // Log the provided configuration
+        Console.WriteLine(
+            $"\n\n\nAWS S3 Configuration\n{SerializerService.SerializePretty(configuration, SerializerFormat.Json)}\n\n\n");
+
+        // Define our credentials
+        BasicAWSCredentials credentials = new(configuration.AccessKeyId, configuration.SecretAccessKey);
+
+        // We're done, return our client
+        return new(credentials, new AmazonS3Config
+        {
+            // Define our region
+            RegionEndpoint = RegionEndpoint.GetBySystemName(configuration.Region ?? "us-east-1")
+        });
+    }
 
     /// <summary>
     ///     This property contains the instance of our transfer utility
