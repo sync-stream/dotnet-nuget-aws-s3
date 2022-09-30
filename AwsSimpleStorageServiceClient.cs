@@ -99,7 +99,7 @@ public class AwsSimpleStorageServiceClient
         if (!objectName.Contains('/')) return new(objectName, string.Empty);
 
         // Split the parts
-        List<string> parts = objectName.Split('/', 2, StringSplitOptions.TrimEntries).ToList();
+        List<string> parts = objectName.Split('/', StringSplitOptions.TrimEntries).ToList();
 
         // Check for parts
         if (!parts.Any()) return new(objectName, string.Empty);
