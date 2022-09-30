@@ -92,6 +92,9 @@ public class AwsSimpleStorageServiceClient
         // Check the name for a directory
         if (objectName.EndsWith("/")) objectName = objectName.TrimEnd('/');
 
+        // Check for an absolute path
+        if (objectName.StartsWith("/")) objectName = objectName.Substring(1);
+
         // Check for a directory separator
         if (!objectName.Contains('/')) return new(objectName, string.Empty);
 
