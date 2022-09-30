@@ -31,10 +31,6 @@ public class AwsSimpleStorageServiceClient
         // Ensure we have a configuration
         configuration ??= Configuration;
 
-        // Log the provided configuration
-        Console.WriteLine(
-            $"\n\n\nAWS S3 Configuration\n{SerializerService.SerializePretty(configuration, SerializerFormat.Json)}\n\n\n");
-
         // Define our credentials
         BasicAWSCredentials credentials = new(configuration.AccessKeyId, configuration.SecretAccessKey);
 
@@ -42,7 +38,7 @@ public class AwsSimpleStorageServiceClient
         return new(credentials, new AmazonS3Config
         {
             // Define our region
-            RegionEndpoint = RegionEndpoint.GetBySystemName(configuration.Region ?? "us-east-1")
+            RegionEndpoint = RegionEndpoint.GetBySystemName(configuration.Region)
         });
     }
 
@@ -228,7 +224,7 @@ public class AwsSimpleStorageServiceClient
         IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Make sure the file exists and return
-        if (!await ObjectExistsAsync(objectName)) return null;
+        if (!await ObjectExistsAsync(objectName, configuration)) return null;
 
         // Grab the bucket and object name
         Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectName);
@@ -272,7 +268,7 @@ public class AwsSimpleStorageServiceClient
         IAwsSimpleStorageServiceClientConfiguration configuration = null)
     {
         // Make sure the file exists and return
-        if (!await ObjectExistsAsync(objectName))
+        if (!await ObjectExistsAsync(objectName, configuration))
             throw new AwsSimpleStorageServiceObjectNotFoundException("S3 Object Not Found");
 
         // Localize the bucket and object name
