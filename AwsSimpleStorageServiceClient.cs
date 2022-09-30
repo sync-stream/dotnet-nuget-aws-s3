@@ -105,7 +105,7 @@ public class AwsSimpleStorageServiceClient
         if (!parts.Any()) return new(objectName, string.Empty);
 
         // We're done, return the bucket and objet name
-        return new(parts.FirstOrDefault(), parts.LastOrDefault());
+        return new(parts.FirstOrDefault(), string.Join("/", parts.Skip(1)));
     }
 
     /// <summary>
