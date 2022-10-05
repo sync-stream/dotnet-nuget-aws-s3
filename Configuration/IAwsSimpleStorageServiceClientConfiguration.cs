@@ -1,3 +1,5 @@
+using SyncStream.Serializer;
+
 // Define our namespace
 namespace SyncStream.Aws.S3.Client.Configuration;
 
@@ -17,12 +19,18 @@ public interface IAwsSimpleStorageServiceClientConfiguration
     public string KeyManagementServiceKeyId { get; set; }
 
     /// <summary>
+    ///     This property contains the AWS region
+    /// </summary>
+    public string Region { get; set; }
+
+    /// <summary>
     ///     This property contains the AWS secret access key
     /// </summary>
     public string SecretAccessKey { get; set; }
 
     /// <summary>
-    ///     This property contains the AWS region
+    ///     This property contains our serialization format for complex objects
     /// </summary>
-    public string Region { get; set; }
+
+    public SerializerFormat SerializationFormat { get; set; }
 }
