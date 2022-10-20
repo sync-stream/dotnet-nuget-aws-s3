@@ -375,6 +375,9 @@ public class AwsSimpleStorageServiceClient
         // List the objects from S3
         List<S3Object> objects = await ListObjectsAsync(objectPrefix, configuration);
 
+        // Localize the bucket and object name
+        Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectPrefix);
+
         // Define our list of awaitable tasks
         List<Task> tasks = new();
 
@@ -385,8 +388,7 @@ public class AwsSimpleStorageServiceClient
         objects.ForEach(o => tasks.Add(Task.Run(async () =>
         {
             // Check for a file object and download the document from S3 and add it to the response
-            if (IsFile(o.Key)) response.Add(await DownloadObjectAsync<TOutput>(o.Key, configuration));
-
+            if (IsFile(o.Key)) response.Add(await DownloadObjectAsync<TOutput>($"{bucketAndObjectName.Item1}/{o.Key}", configuration));
 
             // Otherwise, list the objects in the directory and add them to the response
             else response.AddRange(await ListObjectsAsync<TOutput>(o.Key, configuration));
@@ -559,7 +561,7 @@ public class AwsSimpleStorageServiceClient
     /// <returns>An awaitable task with no result</returns>
     public static Task UploadAsync(string objectName, byte[] binary,
         IAwsSimpleStorageServiceClientConfiguration configuration = null, MetadataCollection metadata = null,
-        S3CannedACL acl = null) => UploadAsync(objectName, new MemoryStream(binary), configuration, metadata, acl);
+        S3CannedACL acl = null) => UploadAsync(objectName, new MemoryStream(binary) as Stream, configuration, metadata, acl);
 
     /// <summary>
     ///     This method asynchronously uploads <paramref name="localPathOrContent" /> to <paramref name="objectName" />

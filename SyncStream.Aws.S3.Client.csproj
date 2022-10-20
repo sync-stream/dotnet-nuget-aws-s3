@@ -42,7 +42,7 @@
         <TargetFramework>net6.0</TargetFramework>
 
         <!-- Define our version -->
-        <Version>1.0.15</Version>
+        <Version>1.1.0</Version>
     </PropertyGroup>
 
     <!-- Define our NuGet Dependencies -->
@@ -53,12 +53,12 @@
 
         <!-- We'll need Microsoft's configuration -->
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="6.0.0" />
-        
+
         <!-- We'll need Microsoft's dependency injection -->
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
 
         <!-- We'll need our serializer -->
-        <PackageReference Include="SyncStream.Serializer" Version="1.0.9" />
+        <PackageReference Include="SyncStream.Serializer" Version="1.1.0" />
     </ItemGroup>
 
     <!-- Define our included content -->
