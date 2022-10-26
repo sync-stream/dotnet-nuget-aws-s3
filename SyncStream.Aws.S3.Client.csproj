@@ -45,14 +45,14 @@
         <TargetFramework>net6.0</TargetFramework>
 
         <!-- Define our version -->
-        <Version>1.1.8</Version>
+        <Version>1.1.10</Version>
     </PropertyGroup>
 
     <!-- Define our NuGet Dependencies -->
     <ItemGroup>
 
         <!-- We'll need the AWS SDK -->
-        <PackageReference Include="AWSSDK.S3" Version="3.7.101.2" />
+        <PackageReference Include="AWSSDK.S3" Version="3.7.101.3" />
 
         <!-- We'll need Microsoft's configuration -->
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="6.0.0" />

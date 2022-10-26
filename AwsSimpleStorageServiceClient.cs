@@ -291,7 +291,7 @@ public class AwsSimpleStorageServiceClient
     /// <returns>An awaitable task containing the object in <paramref name="objectPrefix" /> that contains the <paramref name="metadata" /></returns>
     public static async Task<S3Object> FindObjectAsync(string objectPrefix, Dictionary<string, string> metadata,
         IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
-        (await FindObjectsAsync(objectPrefix, metadata, configuration)).FirstOrDefault();
+        (await FindObjectsAsync(objectPrefix, metadata, configuration, true)).FirstOrDefault();
 
     /// <summary>
     ///     This method asynchronously finds an object in S3 that matches the <paramref name="searchPattern" /> with the prefix path
@@ -317,7 +317,7 @@ public class AwsSimpleStorageServiceClient
     /// <returns>An awaitable task containing the object in <paramref name="objectPrefix" /> that contain the <paramref name="metadata" /></returns>
     public static async Task<TTarget> FindObjectAsync<TTarget>(string objectPrefix, Dictionary<string, string> metadata,
         IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
-        (await FindObjectsAsync<TTarget>(objectPrefix, metadata, configuration)).FirstOrDefault();
+        (await FindObjectsAsync<TTarget>(objectPrefix, metadata, configuration, true)).FirstOrDefault();
 
     /// <summary>
     ///     This method asynchronously finds objects in S3 that match the <paramref name="searchPattern" />
@@ -345,9 +345,10 @@ public class AwsSimpleStorageServiceClient
     /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
     /// <param name="metadata">The metadata the object must contain</param>
     /// <param name="configuration">Optional, client configuration override</param>
+    /// <param name="single">Optional, flag denoting exit after one match</param>
     /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that contain the <paramref name="metadata" /></returns>
     public static async Task<List<S3Object>> FindObjectsAsync(string objectPrefix, Dictionary<string, string> metadata,
-        IAwsSimpleStorageServiceClientConfiguration configuration = null)
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, bool single = false)
     {
         // List the objects in the directory
         List<S3Object> objects = await ListAllObjectsAsync(objectPrefix, configuration);
@@ -358,25 +359,42 @@ public class AwsSimpleStorageServiceClient
         // Define our tasks
         List<Task> tasks = new();
 
+        // Define our local stopping token
+        CancellationToken stoppingToken = new();
+
         // Iterate over the objects
-        objects.ForEach(o => tasks.Add(Task.Run(async () =>
+        objects.ForEach(o =>
         {
-            // Download the object's metadata
-            GetObjectMetadataResponse objectMetadata =
-                await GetClient().GetObjectMetadataAsync(o.BucketName, o.Key);
+            // Check the local stopping token for cancellation
+            if (stoppingToken.IsCancellationRequested) return;
 
-            // Define our matched flag
-            bool matched = true;
+            // Add the task to the list
+            tasks.Add(Task.Run(async () =>
+            {
+                // Check the cancellation token
+                if (stoppingToken.IsCancellationRequested) return;
 
-            // Iterate over the keys in the metadata and check their value
-            foreach (string metadataKey in metadata.Keys)
-                if (objectMetadata.Metadata[metadataKey] is null ||
-                    objectMetadata.Metadata[metadataKey] != metadata[metadataKey.Replace(" ", "-")])
-                    matched = false;
+                // Download the object's metadata
+                GetObjectMetadataResponse objectMetadata =
+                    await GetClient(configuration).GetObjectMetadataAsync(o.BucketName, o.Key, stoppingToken);
 
-            // Check the matched flag and add the object to the response
-            if (matched) response.Add(o);
-        })));
+                // Define our matched flag
+                bool matched = true;
+
+                // Iterate over the keys in the metadata and check their value
+                foreach (string metadataKey in metadata.Keys)
+                    if (objectMetadata.Metadata[metadataKey] is null ||
+                        objectMetadata.Metadata[metadataKey] != metadata[metadataKey.Replace(" ", "-")])
+                        matched = false;
+
+                // Check the matched flag and add the object to the response
+                if (matched) response.Add(o);
+
+                // Check the matched flag and the single flag
+                if (matched && single && !stoppingToken.CanBeCanceled)
+                    CancellationTokenSource.CreateLinkedTokenSource(stoppingToken).Cancel();
+            }, stoppingToken));
+        });
 
         // Await all of the tasks
         await Task.WhenAll(tasks);
@@ -427,17 +445,18 @@ public class AwsSimpleStorageServiceClient
     /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
     /// <param name="metadata">The metadata the object must contain</param>
     /// <param name="configuration">Optional, client configuration override</param>
+    /// <param name="single">Optional, flag denoting exit after one match</param>
     /// <typeparam name="TTarget">The expected type of the deserialized object instances</typeparam>
     /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that contain the <paramref name="metadata" /></returns>
     public static async Task<List<TTarget>> FindObjectsAsync<TTarget>(string objectPrefix,
-        Dictionary<string, string> metadata,
-        IAwsSimpleStorageServiceClientConfiguration configuration = null)
+        Dictionary<string, string> metadata, IAwsSimpleStorageServiceClientConfiguration configuration = null,
+        bool single = false)
     {
         // Localize the bucket and object name
         Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectPrefix);
 
         // Find the objects
-        List<S3Object> objects = await FindObjectsAsync(objectPrefix, metadata, configuration);
+        List<S3Object> objects = await FindObjectsAsync(objectPrefix, metadata, configuration, single);
 
         // Define our list of awaitable tasks
         List<Task> tasks = new();

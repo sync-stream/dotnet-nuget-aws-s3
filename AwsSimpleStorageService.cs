@@ -153,9 +153,10 @@ public class AwsSimpleStorageService : IAwsSimpleStorageService
     /// </summary>
     /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
     /// <param name="metadata">The metadata the object must contain</param>
+    /// <param name="single">Optional, flag that denotes whether to return after a single match or not</param>
     /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that contain the <paramref name="metadata" /></returns>
-    public Task<List<S3Object>> FindObjectsAsync(string objectPrefix, Dictionary<string, string> metadata) =>
-        AwsSimpleStorageServiceClient.FindObjectsAsync(objectPrefix, metadata, _configuration);
+    public Task<List<S3Object>> FindObjectsAsync(string objectPrefix, Dictionary<string, string> metadata,
+        bool single = false) => AwsSimpleStorageServiceClient.FindObjectsAsync(objectPrefix, metadata, _configuration);
 
     /// <summary>
     ///     This method asynchronously finds objects in S3 that match the <paramref name="searchPattern" /> with the prefix path
@@ -174,10 +175,12 @@ public class AwsSimpleStorageService : IAwsSimpleStorageService
     /// </summary>
     /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
     /// <param name="metadata">The metadata the object must contain</param>
+    /// <param name="single">Optional, flag that denotes whether to return after a single match or not</param>
     /// <typeparam name="TTarget">The expected type of the deserialized object instances</typeparam>
     /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that contain the <paramref name="metadata" /></returns>
-    public Task<List<TTarget>> FindObjectsAsync<TTarget>(string objectPrefix, Dictionary<string, string> metadata) =>
-        AwsSimpleStorageServiceClient.FindObjectsAsync<TTarget>(objectPrefix, metadata, _configuration);
+    public Task<List<TTarget>> FindObjectsAsync<TTarget>(string objectPrefix, Dictionary<string, string> metadata,
+        bool single = false) =>
+        AwsSimpleStorageServiceClient.FindObjectsAsync<TTarget>(objectPrefix, metadata, _configuration, single);
 
     /// <summary>
     ///     This method generates an authenticated AWS client
