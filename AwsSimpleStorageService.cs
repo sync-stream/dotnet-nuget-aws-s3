@@ -96,6 +96,90 @@ public class AwsSimpleStorageService : IAwsSimpleStorageService
         AwsSimpleStorageServiceClient.DownloadObjectAsync<TTarget>(objectName, _configuration);
 
     /// <summary>
+    ///     This method asynchronously finds an object in S3 that matches the <paramref name="searchPattern" />
+    ///     with the prefix path <paramref name="objectPrefix" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result object can be found</param>
+    /// <param name="searchPattern">The pattern the object key must match</param>
+    /// <returns>An awaitable task containing the object in <paramref name="objectPrefix" /> that matches the <paramref name="searchPattern" /></returns>
+    public Task<S3Object> FindObjectAsync(string objectPrefix, string searchPattern) =>
+        AwsSimpleStorageServiceClient.FindObjectAsync(objectPrefix, searchPattern, _configuration);
+
+    /// <summary>
+    ///     This method asynchronously finds an object in S3 that contain the <paramref name="metadata" />
+    ///     with the prefix path <paramref name="objectPrefix" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result object can be found</param>
+    /// <param name="metadata">The metadata the object must contain</param>
+    /// <returns>An awaitable task containing the object in <paramref name="objectPrefix" /> that contains the <paramref name="metadata" /></returns>
+    public Task<S3Object> FindObjectAsync(string objectPrefix, Dictionary<string, string> metadata) =>
+        AwsSimpleStorageServiceClient.FindObjectAsync(objectPrefix, metadata, _configuration);
+
+    /// <summary>
+    ///     This method asynchronously finds an object in S3 that matches the <paramref name="searchPattern" /> with the prefix path
+    ///     <paramref name="objectPrefix" /> and returns it as a deserialized <typeparamref name="TTarget" /> object instance
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result object can be found</param>
+    /// <param name="searchPattern">The pattern the object key must match</param>
+    /// <typeparam name="TTarget">The expected type of the deserialized object instance</typeparam>
+    /// <returns>An awaitable task containing the object in <paramref name="objectPrefix" /> that matches the <paramref name="searchPattern" /></returns>
+    public Task<TTarget> FindObjectAsync<TTarget>(string objectPrefix, string searchPattern) =>
+        AwsSimpleStorageServiceClient.FindObjectAsync<TTarget>(objectPrefix, searchPattern, _configuration);
+
+    /// <summary>
+    ///     This method asynchronously finds an object in S3 that contains the <paramref name="metadata" /> with the prefix path
+    ///     <paramref name="objectPrefix" /> and returns it as a deserialized <typeparamref name="TTarget" /> object instance
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result object can be found</param>
+    /// <param name="metadata">The metadata the object must contain</param>
+    /// <typeparam name="TTarget">The expected type of the deserialized object instance</typeparam>
+    /// <returns>An awaitable task containing the object in <paramref name="objectPrefix" /> that contain the <paramref name="metadata" /></returns>
+    public Task<TTarget> FindObjectAsync<TTarget>(string objectPrefix, Dictionary<string, string> metadata) =>
+        AwsSimpleStorageServiceClient.FindObjectAsync<TTarget>(objectPrefix, metadata, _configuration);
+
+    /// <summary>
+    ///     This method asynchronously finds objects in S3 that match the <paramref name="searchPattern" />
+    ///     with the prefix path <paramref name="objectPrefix" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
+    /// <param name="searchPattern">The pattern the object keys must match</param>
+    /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that match the <paramref name="searchPattern" /></returns>
+    public Task<List<S3Object>> FindObjectsAsync(string objectPrefix, string searchPattern) =>
+        AwsSimpleStorageServiceClient.FindObjectsAsync(objectPrefix, searchPattern, _configuration);
+
+    /// <summary>
+    ///     This method asynchronously finds objects in S3 that contain the <paramref name="metadata" />
+    ///     with the prefix path <paramref name="objectPrefix" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
+    /// <param name="metadata">The metadata the object must contain</param>
+    /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that contain the <paramref name="metadata" /></returns>
+    public Task<List<S3Object>> FindObjectsAsync(string objectPrefix, Dictionary<string, string> metadata) =>
+        AwsSimpleStorageServiceClient.FindObjectsAsync(objectPrefix, metadata, _configuration);
+
+    /// <summary>
+    ///     This method asynchronously finds objects in S3 that match the <paramref name="searchPattern" /> with the prefix path
+    ///     <paramref name="objectPrefix" /> and returns them as deserialized <typeparamref name="TTarget" /> object instances
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
+    /// <param name="searchPattern">The pattern the object keys must match</param>
+    /// <typeparam name="TTarget">The expected type of the deserialized object instances</typeparam>
+    /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that match the <paramref name="searchPattern" /></returns>
+    public Task<List<TTarget>> FindObjectsAsync<TTarget>(string objectPrefix, string searchPattern) =>
+        AwsSimpleStorageServiceClient.FindObjectsAsync<TTarget>(objectPrefix, searchPattern, _configuration);
+
+    /// <summary>
+    ///     This method asynchronously finds objects in S3 that contain the <paramref name="metadata" /> with the prefix path
+    ///     <paramref name="objectPrefix" /> and returns them as deserialized <typeparamref name="TTarget" /> object instances
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
+    /// <param name="metadata">The metadata the object must contain</param>
+    /// <typeparam name="TTarget">The expected type of the deserialized object instances</typeparam>
+    /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that contain the <paramref name="metadata" /></returns>
+    public Task<List<TTarget>> FindObjectsAsync<TTarget>(string objectPrefix, Dictionary<string, string> metadata) =>
+        AwsSimpleStorageServiceClient.FindObjectsAsync<TTarget>(objectPrefix, metadata, _configuration);
+
+    /// <summary>
     ///     This method generates an authenticated AWS client
     /// </summary>
     /// <returns>An authenticated AWS S3 Client</returns>
@@ -108,21 +192,44 @@ public class AwsSimpleStorageService : IAwsSimpleStorageService
     public TransferUtility GetTransferUtility() => AwsSimpleStorageServiceClient.GetTransferUtility(_configuration);
 
     /// <summary>
+    ///     This method asynchronously lists all objects with prefix <paramref name="objectPrefix" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix of the objects to list</param>
+    /// <returns>An awaitable task containing the list of objects with the prefix <paramref name="objectPrefix" /></returns>
+    public Task<List<S3Object>> ListAllObjectsAsync(string objectPrefix) =>
+        AwsSimpleStorageServiceClient.ListAllObjectsAsync(objectPrefix, _configuration);
+
+    /// <summary>
+    ///     This method asynchronously lists all objects with prefix <paramref name="objectPrefix" />,
+    ///     downloads them then deserializes them into <typeparamref name="TTarget" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix of the objects to list</param>
+    /// <typeparam name="TTarget">The expected type of the the deserialized objects</typeparam>
+    /// <returns>An awaitable task containing the list of <typeparamref name="TTarget" /> typed objects with the prefix <paramref name="objectPrefix" /></returns>
+    public Task<List<TTarget>> ListAllObjectsAsync<TTarget>(string objectPrefix) =>
+        AwsSimpleStorageServiceClient.ListAllObjectsAsync<TTarget>(objectPrefix, _configuration);
+
+    /// <summary>
     /// This method asynchronously and recursively lists the objects matching <paramref name="objectPrefix" />
     /// </summary>
     /// <param name="objectPrefix">The prefix pattern to query S3 with</param>
+    /// <param name="delimiter">Optional, directory or object delimiter</param>
+    /// <param name="recursive">Optional, flag to denote recursive subdirectory listings</param>
     /// <returns>An awaitable task containing a list of objects</returns>
-    public Task<List<S3Object>> ListObjectsAsync(string objectPrefix) =>
-        AwsSimpleStorageServiceClient.ListObjectsAsync(objectPrefix, _configuration);
+    public Task<List<S3Object>> ListObjectsAsync(string objectPrefix, string delimiter = null, bool recursive = true) =>
+        AwsSimpleStorageServiceClient.ListObjectsAsync(objectPrefix, delimiter, _configuration, null, recursive);
 
     /// <summary>
-    ///     This method asynchronously and recursively lists the objects matching <paramref name="objectPrefix" /> and maps them to documents <typeparamref name="TOutput" />
+    ///     This method asynchronously and recursively lists the objects matching <paramref name="objectPrefix" /> and maps them to documents <typeparamref name="TTarget" />
     /// </summary>
     /// <param name="objectPrefix">The prefix pattern to query S3 with</param>
-    /// <typeparam name="TOutput">The output document type</typeparam>
-    /// <returns>An awaitable task containing a list of <typeparamref name="TOutput" /> objects</returns>
-    public Task<List<TOutput>> ListObjectsAsync<TOutput>(string objectPrefix) =>
-        AwsSimpleStorageServiceClient.ListObjectsAsync<TOutput>(objectPrefix, _configuration);
+    /// <param name="delimiter">Optional, directory or object delimiter</param>
+    /// <param name="recursive">Optional, flag to denote recursive subdirectory listings</param>
+    /// <typeparam name="TTarget">The output document type</typeparam>
+    /// <returns>An awaitable task containing a list of <typeparamref name="TTarget" /> objects</returns>
+    public Task<List<TTarget>>
+        ListObjectsAsync<TTarget>(string objectPrefix, string delimiter = null, bool recursive = true) =>
+        AwsSimpleStorageServiceClient.ListObjectsAsync<TTarget>(objectPrefix, delimiter, _configuration, recursive);
 
     /// <summary>
     ///     This method asynchronously determines whether object <paramref name="objectName" /> exists or not
@@ -147,10 +254,9 @@ public class AwsSimpleStorageService : IAwsSimpleStorageService
     /// <param name="metadata">Optional metadata for the object</param>
     /// <param name="acl">Optional access control for the object</param>
     /// <returns>An awaitable task with no result</returns>
-    public Task
-        UploadAsync(string objectName, Stream data, MetadataCollection metadata = null, S3CannedACL acl = null) =>
-        AwsSimpleStorageServiceClient.UploadAsync(objectName, data, _configuration, metadata,
-            acl ?? S3CannedACL.Private);
+    public Task UploadAsync(string objectName, Stream data, Dictionary<string, object> metadata = null,
+        S3CannedACL acl = null) => AwsSimpleStorageServiceClient.UploadAsync(objectName, data, _configuration, metadata,
+        acl ?? S3CannedACL.Private);
 
     /// <summary>
     ///     This method asynchronously uploads <paramref name="binary" /> to <paramref name="objectName" />
@@ -160,7 +266,7 @@ public class AwsSimpleStorageService : IAwsSimpleStorageService
     /// <param name="metadata">Optional metadata for the object</param>
     /// <param name="acl">Optional access control for the object</param>
     /// <returns>An awaitable task with no result</returns>
-    public Task UploadAsync(string objectName, byte[] binary, MetadataCollection metadata = null,
+    public Task UploadAsync(string objectName, byte[] binary, Dictionary<string, object> metadata = null,
         S3CannedACL acl = null) => AwsSimpleStorageServiceClient.UploadAsync(objectName, binary, _configuration,
         metadata, acl ?? S3CannedACL.Private);
 
@@ -172,7 +278,7 @@ public class AwsSimpleStorageService : IAwsSimpleStorageService
     /// <param name="metadata">Optional metadata for the object</param>
     /// <param name="acl">Optional access control for the object</param>
     /// <returns>An awaitable task with no result</returns>
-    public Task UploadAsync(string objectName, string localPathOrContent, MetadataCollection metadata = null,
+    public Task UploadAsync(string objectName, string localPathOrContent, Dictionary<string, object> metadata = null,
         S3CannedACL acl = null) => AwsSimpleStorageServiceClient.UploadAsync(objectName, localPathOrContent,
         _configuration, metadata, acl ?? S3CannedACL.Private);
 
@@ -185,9 +291,9 @@ public class AwsSimpleStorageService : IAwsSimpleStorageService
     /// <param name="acl">Optional access control for the object</param>
     /// <typeparam name="TSource">The expected source object type</typeparam>
     /// <returns>An awaitable task containing a void result</returns>
-    public Task UploadAsync<TSource>(string objectName, TSource content, MetadataCollection metadata = null,
-        S3CannedACL acl = null) => AwsSimpleStorageServiceClient.UploadAsync<TSource>(objectName, content,
-        _configuration, metadata, acl ?? S3CannedACL.Private);
+    public Task UploadAsync<TSource>(string objectName, TSource content, Dictionary<string, object> metadata = null,
+        S3CannedACL acl = null) => AwsSimpleStorageServiceClient.UploadAsync(objectName, content, _configuration,
+        metadata, acl ?? S3CannedACL.Private);
 
     /// <summary>
     ///     This method asynchronously uploads a local file or directory, or a serialized string of data to S3 as <typeparamref name="TSource" />
@@ -199,7 +305,7 @@ public class AwsSimpleStorageService : IAwsSimpleStorageService
     /// <typeparam name="TSource">The expected source object type</typeparam>
     /// <returns>An awaitable task containing a void result</returns>
     public Task UploadAsync<TSource>(string objectName, string localDirectoryFileOrContent,
-        MetadataCollection metadata = null, S3CannedACL acl = null) =>
+        Dictionary<string, object> metadata = null, S3CannedACL acl = null) =>
         AwsSimpleStorageServiceClient.UploadAsync<TSource>(objectName, localDirectoryFileOrContent, _configuration,
             metadata, acl ?? S3CannedACL.Private);
 

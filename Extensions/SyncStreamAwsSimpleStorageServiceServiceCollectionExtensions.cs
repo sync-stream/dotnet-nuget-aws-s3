@@ -2,12 +2,13 @@ using Microsoft.Extensions.DependencyInjection;
 using SyncStream.Aws.S3.Client.Configuration;
 using SyncStream.Serializer;
 
+// Define our namespace
 namespace SyncStream.Aws.S3.Client.Extensions;
 
 /// <summary>
 ///
 /// </summary>
-public static class AwsSimpleStorageServiceServiceCollectionExtensions
+public static class SyncStreamAwsSimpleStorageServiceServiceCollectionExtensions
 {
     /// <summary>
     ///     This method globally configures the SyncStream AWS S3 service and client with <paramref name="configuration" />

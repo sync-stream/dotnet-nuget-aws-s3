@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.RegularExpressions;
 using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
@@ -269,6 +270,193 @@ public class AwsSimpleStorageServiceClient
     }
 
     /// <summary>
+    ///     This method asynchronously finds an object in S3 that matches the <paramref name="searchPattern" />
+    ///     with the prefix path <paramref name="objectPrefix" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result object can be found</param>
+    /// <param name="searchPattern">The pattern the object key must match</param>
+    /// <param name="configuration">Optional, client configuration override</param>
+    /// <returns>An awaitable task containing the object in <paramref name="objectPrefix" /> that matches the <paramref name="searchPattern" /></returns>
+    public static async Task<S3Object> FindObjectAsync(string objectPrefix, string searchPattern,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
+        (await FindObjectsAsync(objectPrefix, searchPattern, configuration))?.FirstOrDefault();
+
+    /// <summary>
+    ///     This method asynchronously finds an object in S3 that contain the <paramref name="metadata" />
+    ///     with the prefix path <paramref name="objectPrefix" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result object can be found</param>
+    /// <param name="metadata">The metadata the object must contain</param>
+    /// <param name="configuration">Optional, client configuration override</param>
+    /// <returns>An awaitable task containing the object in <paramref name="objectPrefix" /> that contains the <paramref name="metadata" /></returns>
+    public static async Task<S3Object> FindObjectAsync(string objectPrefix, Dictionary<string, string> metadata,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
+        (await FindObjectsAsync(objectPrefix, metadata, configuration)).FirstOrDefault();
+
+    /// <summary>
+    ///     This method asynchronously finds an object in S3 that matches the <paramref name="searchPattern" /> with the prefix path
+    ///     <paramref name="objectPrefix" /> and returns it as a deserialized <typeparamref name="TTarget" /> object instance
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result object can be found</param>
+    /// <param name="searchPattern">The pattern the object key must match</param>
+    /// <param name="configuration">Optional, client configuration override</param>
+    /// <typeparam name="TTarget">The expected type of the deserialized object instance</typeparam>
+    /// <returns>An awaitable task containing the object in <paramref name="objectPrefix" /> that matches the <paramref name="searchPattern" /></returns>
+    public static async Task<TTarget> FindObjectAsync<TTarget>(string objectPrefix, string searchPattern,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
+        (await FindObjectsAsync<TTarget>(objectPrefix, searchPattern, configuration)).FirstOrDefault();
+
+    /// <summary>
+    ///     This method asynchronously finds an object in S3 that contains the <paramref name="metadata" /> with the prefix path
+    ///     <paramref name="objectPrefix" /> and returns it as a deserialized <typeparamref name="TTarget" /> object instance
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result object can be found</param>
+    /// <param name="metadata">The metadata the object must contain</param>
+    /// <param name="configuration">Optional, client configuration override</param>
+    /// <typeparam name="TTarget">The expected type of the deserialized object instance</typeparam>
+    /// <returns>An awaitable task containing the object in <paramref name="objectPrefix" /> that contain the <paramref name="metadata" /></returns>
+    public static async Task<TTarget> FindObjectAsync<TTarget>(string objectPrefix, Dictionary<string, string> metadata,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
+        (await FindObjectsAsync<TTarget>(objectPrefix, metadata, configuration)).FirstOrDefault();
+
+    /// <summary>
+    ///     This method asynchronously finds objects in S3 that match the <paramref name="searchPattern" />
+    ///     with the prefix path <paramref name="objectPrefix" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
+    /// <param name="searchPattern">The pattern the object keys must match</param>
+    /// <param name="configuration">Optional, client configuration override</param>
+    /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that match the <paramref name="searchPattern" /></returns>
+    public static async Task<List<S3Object>> FindObjectsAsync(string objectPrefix, string searchPattern,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    {
+        // List the objects in the directory
+        List<S3Object> objects = await ListAllObjectsAsync(objectPrefix, configuration);
+
+        // We're done, filter the objects and return the list
+        return objects.Where(o => Regex.IsMatch(o.Key, searchPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase))
+            .ToList();
+    }
+
+    /// <summary>
+    ///     This method asynchronously finds objects in S3 that contain the <paramref name="metadata" />
+    ///     with the prefix path <paramref name="objectPrefix" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
+    /// <param name="metadata">The metadata the object must contain</param>
+    /// <param name="configuration">Optional, client configuration override</param>
+    /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that contain the <paramref name="metadata" /></returns>
+    public static async Task<List<S3Object>> FindObjectsAsync(string objectPrefix, Dictionary<string, string> metadata,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    {
+        // List the objects in the directory
+        List<S3Object> objects = await ListAllObjectsAsync(objectPrefix, configuration);
+
+        // Define our response
+        List<S3Object> response = new();
+
+        // Define our tasks
+        List<Task> tasks = new();
+
+        // Iterate over the objects
+        objects.ForEach(o => tasks.Add(Task.Run(async () =>
+        {
+            // Download the object's metadata
+            GetObjectMetadataResponse objectMetadata =
+                await GetClient().GetObjectMetadataAsync(o.BucketName, o.Key);
+
+            // Define our matched flag
+            bool matched = true;
+
+            // Iterate over the keys in the metadata and check their value
+            foreach (string metadataKey in metadata.Keys)
+                if (objectMetadata.Metadata[metadataKey] is null ||
+                    objectMetadata.Metadata[metadataKey] != metadata[metadataKey.Replace(" ", "-")])
+                    matched = false;
+
+            // Check the matched flag and add the object to the response
+            if (matched) response.Add(o);
+        })));
+
+        // Await all of the tasks
+        await Task.WhenAll(tasks);
+
+        // We're done, send the matched objects
+        return response;
+    }
+
+    /// <summary>
+    ///     This method asynchronously finds objects in S3 that match the <paramref name="searchPattern" /> with the prefix path
+    ///     <paramref name="objectPrefix" /> and returns them as deserialized <typeparamref name="TTarget" /> object instances
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
+    /// <param name="searchPattern">The pattern the object keys must match</param>
+    /// <param name="configuration">Optional, client configuration override</param>
+    /// <typeparam name="TTarget">The expected type of the deserialized object instances</typeparam>
+    /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that match the <paramref name="searchPattern" /></returns>
+    public static async Task<List<TTarget>> FindObjectsAsync<TTarget>(string objectPrefix, string searchPattern,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    {
+        // Localize the bucket and object name
+        Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectPrefix);
+
+        // Find the objects
+        List<S3Object> objects = await FindObjectsAsync(objectPrefix, searchPattern, configuration);
+
+        // Define our list of awaitable tasks
+        List<Task> tasks = new();
+
+        // Define our response
+        List<TTarget> response = new();
+
+        // Iterate over the objects
+        objects.ForEach(o => tasks.Add(Task.Run(async () =>
+            response.Add(await DownloadObjectAsync<TTarget>($"{bucketAndObjectName.Item1}/{o.Key}", configuration)))));
+
+        // Await all of our tasks
+        await Task.WhenAll(tasks);
+
+        // We're done, send the response
+        return response;
+    }
+
+    /// <summary>
+    ///     This method asynchronously finds objects in S3 that contain the <paramref name="metadata" /> with the prefix path
+    ///     <paramref name="objectPrefix" /> and returns them as deserialized <typeparamref name="TTarget" /> object instances
+    /// </summary>
+    /// <param name="objectPrefix">The prefix path where the result objects can be found</param>
+    /// <param name="metadata">The metadata the object must contain</param>
+    /// <param name="configuration">Optional, client configuration override</param>
+    /// <typeparam name="TTarget">The expected type of the deserialized object instances</typeparam>
+    /// <returns>An awaitable task containing the objects in <paramref name="objectPrefix" /> that contain the <paramref name="metadata" /></returns>
+    public static async Task<List<TTarget>> FindObjectsAsync<TTarget>(string objectPrefix,
+        Dictionary<string, string> metadata,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    {
+        // Localize the bucket and object name
+        Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectPrefix);
+
+        // Find the objects
+        List<S3Object> objects = await FindObjectsAsync(objectPrefix, metadata, configuration);
+
+        // Define our list of awaitable tasks
+        List<Task> tasks = new();
+
+        // Define our response
+        List<TTarget> response = new();
+
+        // Iterate over the objects
+        objects.ForEach(o => tasks.Add(Task.Run(async () =>
+            response.Add(await DownloadObjectAsync<TTarget>($"{bucketAndObjectName.Item1}/{o.Key}", configuration)))));
+
+        // Await all of our tasks
+        await Task.WhenAll(tasks);
+
+        // We're done, send the response
+        return response;
+    }
+
+    /// <summary>
     ///     This method generates an authenticated AWS client
     /// </summary>
     /// <param name="configuration">Optional configuration override instance</param>
@@ -299,29 +487,53 @@ public class AwsSimpleStorageServiceClient
         new(GetClient(configuration));
 
     /// <summary>
-    /// This method determines whether or not <paramref name="objectName" /> is a directory or not
+    ///     This method determines whether or not <paramref name="objectName" /> is a directory or not
     /// </summary>
     /// <param name="objectName">The object name or path to query</param>
     /// <returns>A boolean denoting whether <paramref name="objectName" /> is a directory or not</returns>
     public static bool IsDirectory(string objectName) => objectName.Trim().EndsWith("/");
 
     /// <summary>
-    /// This method determines whether or not <paramref name="objectName" /> is a file or not
+    ///     This method determines whether or not <paramref name="objectName" /> is a file or not
     /// </summary>
     /// <param name="objectName">The object name or path to query</param>
     /// <returns>A boolean denoting whether <paramref name="objectName" /> is a file or not</returns>
     public static bool IsFile(string objectName) => !IsDirectory(objectName);
 
     /// <summary>
-    /// This method asynchronously and recursively lists the objects matching <paramref name="objectPrefix" />
+    ///     This method asynchronously lists all objects with prefix <paramref name="objectPrefix" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix of the objects to list</param>
+    /// <param name="configuration">Optional, client configuration override</param>
+    /// <returns>An awaitable task containing the list of objects with the prefix <paramref name="objectPrefix" /></returns>
+    public static Task<List<S3Object>> ListAllObjectsAsync(string objectPrefix,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
+        ListObjectsAsync(objectPrefix, null, configuration);
+
+    /// <summary>
+    ///     This method asynchronously lists all objects with prefix <paramref name="objectPrefix" />,
+    ///     downloads them then deserializes them into <typeparamref name="TTarget" />
+    /// </summary>
+    /// <param name="objectPrefix">The prefix of the objects to list</param>
+    /// <param name="configuration">Optional, client configuration override</param>
+    /// <typeparam name="TTarget">The expected type of the the deserialized objects</typeparam>
+    /// <returns>An awaitable task containing the list of <typeparamref name="TTarget" /> typed objects with the prefix <paramref name="objectPrefix" /></returns>
+    public static Task<List<TTarget>> ListAllObjectsAsync<TTarget>(string objectPrefix,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null) =>
+        ListObjectsAsync<TTarget>(objectPrefix, null, configuration);
+
+    /// <summary>
+    ///     This method asynchronously and recursively lists the objects matching <paramref name="objectPrefix" />
     /// </summary>
     /// <param name="objectPrefix">The prefix pattern to query S3 with</param>
-    /// <param name="configuration">Optional configuration override instance</param>
+    /// <param name="delimiter">Optional, directory or object delimiter</param>
+    /// <param name="configuration">Optional, configuration override instance</param>
+    /// <param name="marker">AWS S3 marker to denote where the request starts</param>
+    /// <param name="recursive">Optional, flag to denote recursive subdirectory listings</param>
     /// <returns>An awaitable task containing a list of objects</returns>
-    public static async Task<List<S3Object>> ListObjectsAsync(string objectPrefix,
-        IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    public static async Task<List<S3Object>> ListObjectsAsync(string objectPrefix, string delimiter = null,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, string marker = null, bool recursive = true)
     {
-
         // Localize our client into a disposable context
         using AmazonS3Client client = GetClient(configuration);
 
@@ -338,7 +550,7 @@ public class AwsSimpleStorageServiceClient
         do
         {
             // Define our request
-            ListObjectsRequest request = new ListObjectsRequest()
+            ListObjectsRequest request = new()
             {
                 // Set the bucket name into the request
                 BucketName = bucketAndObjectPrefix.Item1,
@@ -347,11 +559,36 @@ public class AwsSimpleStorageServiceClient
                 Prefix = bucketAndObjectPrefix.Item2
             };
 
+            // Check for a delimiter and set it into the request
+            if (delimiter is not null or "") request.Delimiter = delimiter;
+
+            // Check for a marker and set it into the request
+            if (marker is not null or "") request.Marker = marker;
+
             // List the objects from S3
             ListObjectsResponse objectsResponse = await client.ListObjectsAsync(request);
 
             // Add the objects to the list
             objects.AddRange(objectsResponse.S3Objects.Where(o => IsFile(o.Key)));
+
+            // Check the response for truncation and get the rest of the objects
+            if (objectsResponse.IsTruncated)
+                objects.AddRange(await ListObjectsAsync(objectPrefix, delimiter, configuration,
+                    objectsResponse.NextMarker, false));
+
+            // Check for any common prefixes to list
+            if (recursive && objectsResponse.CommonPrefixes.Any())
+            {
+                // Define our task list
+                List<Task> tasks = new();
+
+                // Iterate over the common prefixes and list them
+                objectsResponse.CommonPrefixes.ForEach(p =>
+                    Task.Run(async () => objects.AddRange(await ListObjectsAsync($"{objectsResponse.Name}/{p}"))));
+
+                // Await all of our common prefix tasks
+                await Task.WhenAll(tasks);
+            }
 
             // Reset the token
             nextToken = objectsResponse.NextMarker;
@@ -363,17 +600,19 @@ public class AwsSimpleStorageServiceClient
     }
 
     /// <summary>
-    ///     This method asynchronously and recursively lists the objects matching <paramref name="objectPrefix" /> and maps them to documents <typeparamref name="TOutput" />
+    ///     This method asynchronously and recursively lists the objects matching <paramref name="objectPrefix" /> and maps them to documents <typeparamref name="TTarget" />
     /// </summary>
     /// <param name="objectPrefix">The prefix pattern to query S3 with</param>
+    /// <param name="delimiter">Optional, directory or object delimiter</param>
     /// <param name="configuration">Optional configuration override instance</param>
-    /// <typeparam name="TOutput">The output document type</typeparam>
-    /// <returns>An awaitable task containing a list of <typeparamref name="TOutput" /> objects</returns>
-    public static async Task<List<TOutput>> ListObjectsAsync<TOutput>(string objectPrefix,
-        IAwsSimpleStorageServiceClientConfiguration configuration = null)
+    /// <param name="recursive">Optional, flag to denote recursive subdirectory listings</param>
+    /// <typeparam name="TTarget">The output document type</typeparam>
+    /// <returns>An awaitable task containing a list of <typeparamref name="TTarget" /> objects</returns>
+    public static async Task<List<TTarget>> ListObjectsAsync<TTarget>(string objectPrefix, string delimiter = null,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, bool recursive = true)
     {
         // List the objects from S3
-        List<S3Object> objects = await ListObjectsAsync(objectPrefix, configuration);
+        List<S3Object> objects = await ListObjectsAsync(objectPrefix, delimiter, configuration, null, recursive);
 
         // Localize the bucket and object name
         Tuple<string, string> bucketAndObjectName = BucketAndObjectName(objectPrefix);
@@ -382,17 +621,11 @@ public class AwsSimpleStorageServiceClient
         List<Task> tasks = new();
 
         // Define our response
-        List<TOutput> response = new();
+        List<TTarget> response = new();
 
         // Iterate over the objects
         objects.ForEach(o => tasks.Add(Task.Run(async () =>
-        {
-            // Check for a file object and download the document from S3 and add it to the response
-            if (IsFile(o.Key)) response.Add(await DownloadObjectAsync<TOutput>($"{bucketAndObjectName.Item1}/{o.Key}", configuration));
-
-            // Otherwise, list the objects in the directory and add them to the response
-            else response.AddRange(await ListObjectsAsync<TOutput>(o.Key, configuration));
-        })));
+            response.Add(await DownloadObjectAsync<TTarget>($"{bucketAndObjectName.Item1}/{o.Key}", configuration)))));
 
         // Await all of our tasks
         await Task.WhenAll(tasks);
@@ -502,7 +735,7 @@ public class AwsSimpleStorageServiceClient
     /// <param name="acl">Optional access control for the object</param>
     /// <returns>An awaitable task with no result</returns>
     public static Task UploadAsync(string objectName, Stream data,
-        IAwsSimpleStorageServiceClientConfiguration configuration = null, MetadataCollection metadata = null,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, Dictionary<string, object> metadata = null,
         S3CannedACL acl = null)
     {
         // Default our ACL
@@ -538,10 +771,8 @@ public class AwsSimpleStorageServiceClient
         // Configure the encryption for the object
         ConfigureEncryption(ref request, configuration);
 
-        // Iterate over the metadata keys
-        foreach (string key in metadata?.Keys ?? new string[] { })
-            if (!string.IsNullOrEmpty(metadata?[key]) && !string.IsNullOrWhiteSpace(metadata[key]))
-                request.Metadata.Add(key, metadata[key]);
+        // Iterate over the provided metadata and add the values to the request
+        metadata?.Keys.ToList().ForEach(k => request.Metadata.Add(k.Replace(" ", "-"), metadata[k]?.ToString()));
 
         // Localize our transfer utility into a disposable context
         using TransferUtility utility = GetTransferUtility(configuration);
@@ -560,8 +791,9 @@ public class AwsSimpleStorageServiceClient
     /// <param name="acl">Optional access control for the object</param>
     /// <returns>An awaitable task with no result</returns>
     public static Task UploadAsync(string objectName, byte[] binary,
-        IAwsSimpleStorageServiceClientConfiguration configuration = null, MetadataCollection metadata = null,
-        S3CannedACL acl = null) => UploadAsync(objectName, new MemoryStream(binary) as Stream, configuration, metadata, acl);
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, Dictionary<string, object> metadata = null,
+        S3CannedACL acl = null) =>
+        UploadAsync(objectName, new MemoryStream(binary) as Stream, configuration, metadata, acl);
 
     /// <summary>
     ///     This method asynchronously uploads <paramref name="localPathOrContent" /> to <paramref name="objectName" />
@@ -573,7 +805,7 @@ public class AwsSimpleStorageServiceClient
     /// <param name="acl">Optional access control for the object</param>
     /// <returns>An awaitable task with no result</returns>
     public static async Task UploadAsync(string objectName, string localPathOrContent,
-        IAwsSimpleStorageServiceClientConfiguration configuration = null, MetadataCollection metadata = null,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, Dictionary<string, object> metadata = null,
         S3CannedACL acl = null)
     {
         // Check for a directory
@@ -622,7 +854,7 @@ public class AwsSimpleStorageServiceClient
     /// <typeparam name="TSource">The expected source object type</typeparam>
     /// <returns>An awaitable task containing a void result</returns>
     public static Task UploadAsync<TSource>(string objectName, TSource content,
-        IAwsSimpleStorageServiceClientConfiguration configuration = null, MetadataCollection metadata = null,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, Dictionary<string, object> metadata = null,
         S3CannedACL acl = null) => UploadAsync(objectName,
         SerializerService.SerializePretty(content, (configuration ?? Configuration).SerializationFormat), configuration,
         metadata, acl);
@@ -638,9 +870,12 @@ public class AwsSimpleStorageServiceClient
     /// <typeparam name="TSource">The expected source object type</typeparam>
     /// <returns>An awaitable task containing a void result</returns>
     public static async Task UploadAsync<TSource>(string objectName, string localDirectoryFileOrContent,
-        IAwsSimpleStorageServiceClientConfiguration configuration = null, MetadataCollection metadata = null,
+        IAwsSimpleStorageServiceClientConfiguration configuration = null, Dictionary<string, object> metadata = null,
         S3CannedACL acl = null)
     {
+        // Define our tasks
+        List<Task> tasks = new();
+
         // Check for a directory
         if (Directory.Exists(localDirectoryFileOrContent))
         {
@@ -649,31 +884,25 @@ public class AwsSimpleStorageServiceClient
 
             // Iterate over the sub-directories and upload them
             foreach (DirectoryInfo subDirectory in directory.EnumerateDirectories())
-                await UploadAsync<TSource>($"{objectName}/{subDirectory.Name}", subDirectory.FullName, configuration,
-                    metadata, acl);
+                tasks.Add(UploadAsync<TSource>($"{objectName}/{subDirectory.Name}", subDirectory.FullName,
+                    configuration, metadata, acl));
 
             // Iterate over the files and upload them
             foreach (FileInfo file in directory.EnumerateFiles())
-                await UploadAsync($"{objectName}/{file.Name}", await File.ReadAllTextAsync(file.FullName),
-                    configuration, metadata, acl);
-
-            // We're done
-            return;
+                tasks.Add(UploadAsync($"{objectName}/{file.Name}", await File.ReadAllTextAsync(file.FullName),
+                    configuration, metadata, acl));
         }
 
         // Check for a file
-        if (File.Exists(localDirectoryFileOrContent))
-        {
-            // Read the file from the local filesystem and upload it to S3
-            await UploadAsync(objectName, await File.ReadAllTextAsync(localDirectoryFileOrContent), configuration,
-                metadata, acl);
-
-            // We're done
-            return;
-        }
+        else if (File.Exists(localDirectoryFileOrContent))
+            tasks.Add(UploadAsync(objectName, await File.ReadAllTextAsync(localDirectoryFileOrContent), configuration,
+                metadata, acl));
 
         // We're done, convert the content to bytes and create the file in S3
-        await UploadAsync(objectName, localDirectoryFileOrContent, configuration, metadata, acl);
+        else tasks.Add(UploadAsync(objectName, localDirectoryFileOrContent, configuration, metadata, acl));
+
+        // Await all of the tasks
+        await Task.WhenAll(tasks);
     }
 
     /// <summary>
