@@ -792,3 +792,4 @@ e2e/*.map
 .DS_Store/
 
 # End of https://www.toptal.com/developers/gitignore/api/angular
+SyncStream.Aws.S3.Client.xml
