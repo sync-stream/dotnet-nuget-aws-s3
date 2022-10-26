@@ -360,23 +360,23 @@ public class AwsSimpleStorageServiceClient
         List<Task> tasks = new();
 
         // Define our local stopping token
-        CancellationToken stoppingToken = new();
+        CancellationTokenSource stoppingSource = new();
 
         // Iterate over the objects
         objects.ForEach(o =>
         {
             // Check the local stopping token for cancellation
-            if (stoppingToken.IsCancellationRequested) return;
+            if (stoppingSource.IsCancellationRequested) return;
 
             // Add the task to the list
             tasks.Add(Task.Run(async () =>
             {
                 // Check the cancellation token
-                if (stoppingToken.IsCancellationRequested) return;
+                if (stoppingSource.IsCancellationRequested) return;
 
                 // Download the object's metadata
                 GetObjectMetadataResponse objectMetadata =
-                    await GetClient(configuration).GetObjectMetadataAsync(o.BucketName, o.Key, stoppingToken);
+                    await GetClient(configuration).GetObjectMetadataAsync(o.BucketName, o.Key, stoppingSource.Token);
 
                 // Define our matched flag
                 bool matched = true;
@@ -391,9 +391,8 @@ public class AwsSimpleStorageServiceClient
                 if (matched) response.Add(o);
 
                 // Check the matched flag and the single flag
-                if (matched && single && !stoppingToken.CanBeCanceled)
-                    CancellationTokenSource.CreateLinkedTokenSource(stoppingToken).Cancel();
-            }, stoppingToken));
+                if (matched && single && !stoppingSource.Token.CanBeCanceled) stoppingSource.Cancel();
+            }, stoppingSource.Token));
         });
 
         // Await all of the tasks
